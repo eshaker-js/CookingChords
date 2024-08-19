@@ -1,0 +1,22 @@
+# Ignore Unreal auto-saved files
+*.tmp
+*.log
+*.obj
+*.pdb
+*.sdf
+*.opensdf
+*.tlog
+*.cache
+*.ilk
+*.aps
+*.ncb
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+.vscode/
