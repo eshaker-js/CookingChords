@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Logging/LogMacros.h"
+#include "Engine/StaticMeshActor.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogSliceableObject, Log, All);
@@ -19,9 +20,11 @@ ASliceableObject::ASliceableObject()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	RootComponent = Mesh;
 
-	Mesh->SetNotifyRigidBodyCollision(true);
+    Mesh->SetSimulatePhysics(true);
+    Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Mesh->SetEnableGravity(false);
 	Mesh->SetGenerateOverlapEvents(true);
-	Mesh->OnComponentHit.AddDynamic(this, &ASliceableObject::OnHit);
+	Mesh->OnComponentBeginOverlap.AddDynamic(this, &ASliceableObject::OnOverlapBegin);
 }
 
 // Called when the game starts or when spawned
@@ -39,9 +42,56 @@ void ASliceableObject::Tick(float DeltaTime)
 }
 
 
-void ASliceableObject::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void ASliceableObject::OnOverlapBegin(UPrimitiveComponent * HitComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	UE_LOG(LogSliceableObject, Warning, TEXT("Object Hit Detected!"));
 
-	// Despawn logic will go here in the next step
+	//Destroy();
+	SliceObject();
 }
+
+
+void ASliceableObject::SliceObject()
+{
+    // Store necessary information before destroying the original actor
+    FVector SpawnLocation = GetActorLocation();
+    FRotator SpawnRotation = GetActorRotation();
+    UStaticMesh* OriginalMesh = Mesh->GetStaticMesh();
+
+    // Destroy the original object before proceeding
+    Destroy();
+
+    UE_LOG(LogSliceableObject, Warning, TEXT("Slicing object"));
+
+    // Offset for the spawn locations of the two halves
+    FVector Offset = FVector(10.0f, 0.0f, 0.0f);  // Adjust the offset as needed
+
+    // Spawn the first half slightly to the right
+    FVector FirstHalfLocation = SpawnLocation + Offset;
+    AStaticMeshActor* FirstHalf = GetWorld()->SpawnActor<AStaticMeshActor>(FirstHalfLocation, SpawnRotation);
+    if (FirstHalf && FirstHalf->GetStaticMeshComponent())
+    {
+        FirstHalf->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
+        FirstHalf->GetStaticMeshComponent()->SetStaticMesh(OriginalMesh);  
+        FirstHalf->GetStaticMeshComponent()->SetSimulatePhysics(true);
+        FirstHalf->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+        FVector FirstHalfDirection = FVector::UpVector + FVector::RightVector;
+        FirstHalf->GetStaticMeshComponent()->AddImpulse(FirstHalfDirection * 500.0f);
+    }
+
+    // Spawn the second half slightly to the left
+    FVector SecondHalfLocation = SpawnLocation - Offset;
+    AStaticMeshActor* SecondHalf = GetWorld()->SpawnActor<AStaticMeshActor>(SecondHalfLocation, SpawnRotation);
+    if (SecondHalf && SecondHalf->GetStaticMeshComponent())
+    {
+        SecondHalf->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
+        SecondHalf->GetStaticMeshComponent()->SetStaticMesh(OriginalMesh);  
+        SecondHalf->GetStaticMeshComponent()->SetSimulatePhysics(true);
+        SecondHalf->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+        FVector SecondHalfDirection = FVector::UpVector + FVector::LeftVector;
+        SecondHalf->GetStaticMeshComponent()->AddImpulse(SecondHalfDirection * 500.0f);
+    }
+}
+
+
+
