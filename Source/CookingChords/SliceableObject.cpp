@@ -20,11 +20,12 @@ ASliceableObject::ASliceableObject()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	RootComponent = Mesh;
 
-    Mesh->SetSimulatePhysics(true);
+    Mesh->SetSimulatePhysics(false);
     Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Mesh->SetEnableGravity(false);
 	Mesh->SetGenerateOverlapEvents(true);
 	Mesh->OnComponentBeginOverlap.AddDynamic(this, &ASliceableObject::OnOverlapBegin);
+    is_sliced = false;
 }
 
 // Called when the game starts or when spawned
@@ -58,6 +59,9 @@ void ASliceableObject::SliceObject()
     FRotator SpawnRotation = GetActorRotation();
     UStaticMesh* OriginalMesh = Mesh->GetStaticMesh();
 
+    is_sliced = true;
+
+    OnSliced();
     // Destroy the original object before proceeding
     Destroy();
 
@@ -91,7 +95,27 @@ void ASliceableObject::SliceObject()
         FVector SecondHalfDirection = FVector::UpVector + FVector::LeftVector;
         SecondHalf->GetStaticMeshComponent()->AddImpulse(SecondHalfDirection * 500.0f);
     }
+    FTimerHandle timer1;
+    GetWorld()->GetTimerManager().SetTimer(timer1, [FirstHalf, SecondHalf]() {
+        if (FirstHalf) FirstHalf->Destroy();
+        if (SecondHalf) SecondHalf->Destroy();
+        }, 1.0f, false);
+    
 }
 
 
+bool ASliceableObject::GetIsSliced() const
+{
+    return is_sliced;
+}
 
+void ASliceableObject::SetIsSliced(bool new_state)
+{
+    if (is_sliced != new_state)
+    {
+        is_sliced = new_state;
+        //UE_LOG(LogTemp, Warning, TEXT("bIsSliced has been updated."));
+
+        // Additional logic can go here if needed, like triggering events
+    }
+}
