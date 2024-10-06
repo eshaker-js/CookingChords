@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "LevelEditorUI.h"
 #include "LevelEditorManager.generated.h"
 
 UCLASS()
@@ -20,6 +21,10 @@ protected:
     virtual void BeginPlay() override;
 
 public:
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    TSubclassOf<ULevelEditorUI> LevelEditorUIClass;
+
     // Called every frame
     virtual void Tick(float DeltaTime) override;
 

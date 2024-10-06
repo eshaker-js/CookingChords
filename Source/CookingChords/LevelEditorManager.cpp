@@ -17,7 +17,7 @@ void ALevelEditorManager::BeginPlay()
 {
     Super::BeginPlay();
 
-    UWorld* World = GetWorld();
+    UWorld* World = this->GetWorld();  // Use `this->GetWorld()` for clarity
     if (!World)
     {
         UE_LOG(LogTemp, Error, TEXT("World context is invalid during level transition"));
@@ -48,18 +48,30 @@ void ALevelEditorManager::BeginPlay()
         return;
     }
 
-
     // Disable VR if necessary
     DisableVR();
 
     // Place player at Player Start and set rotation
     PlacePlayerAtStart();
 
-        PlayerController->bShowMouseCursor = true;  // Show the mouse cursor
-        PlayerController->bEnableClickEvents = true;  // Enable click events
-        PlayerController->bEnableMouseOverEvents = true;  // Enable mouse over events
-        PlayerController->SetInputMode(FInputModeGameAndUI());  // Set input mode to handle both game and UI
+    // Enable mouse controls for the UI and game
+    PlayerController->bShowMouseCursor = true;
+    PlayerController->bEnableClickEvents = true;
+    PlayerController->bEnableMouseOverEvents = true;
+    PlayerController->SetInputMode(FInputModeGameAndUI().SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock));
+
+    // Ensure the widget blueprint class is set
+    if (LevelEditorUIClass)
+    {
+        ULevelEditorUI* AudioUI = CreateWidget<ULevelEditorUI>(PlayerController, LevelEditorUIClass);
+        if (AudioUI)
+        {
+            AudioUI->AddToViewport();
+            //AudioUI->SetDesiredSizeInViewport(FVector2D(800, 600));  // Set a smaller size for the widget
+        }
+    }
 }
+
 
 // Called every frame
 void ALevelEditorManager::Tick(float DeltaTime)
