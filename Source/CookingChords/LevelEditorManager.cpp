@@ -67,7 +67,10 @@ void ALevelEditorManager::BeginPlay()
         if (AudioUI)
         {
             AudioUI->AddToViewport();
-            //AudioUI->SetDesiredSizeInViewport(FVector2D(800, 600));  // Set a smaller size for the widget
+            FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
+            FVector2D CenteredPosition = ViewportSize / 2.0f;
+            //AudioUI->SetPositionInViewport(CenteredPosition, true);
+
         }
     }
 }
