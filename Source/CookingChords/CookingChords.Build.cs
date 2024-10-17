@@ -8,7 +8,7 @@ public class CookingChords : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "RuntimeAudioImporter" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "RuntimeAudioImporter", "Slate", "SlateCore", "UMG" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
