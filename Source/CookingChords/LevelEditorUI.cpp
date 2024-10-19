@@ -35,13 +35,48 @@ bool ULevelEditorUI::Initialize()
 
     if (Sliceable_Lane_1)
     {
+        // Set the button's normal style to fully green with low opacity
+        FButtonStyle ButtonStyle = Sliceable_Lane_1->WidgetStyle;
+
+        // Create a green color with low opacity
+        FSlateBrush BackgroundBrush;
+        BackgroundBrush.TintColor = FSlateColor(FLinearColor(0.0f, 1.0f, 0.0f, 0.3f));  // Green with 0.3 opacity
+        BackgroundBrush.DrawAs = ESlateBrushDrawType::Box;  // Draw the background as a box
+
+        // Set the button style for the entire button
+        ButtonStyle.Normal = BackgroundBrush;
+        ButtonStyle.Hovered = BackgroundBrush;
+        ButtonStyle.Pressed = BackgroundBrush;
+
+        SelectedButtonStyle = ButtonStyle;
+
+
+        NormalButtonStyle = Sliceable_Lane_1->WidgetStyle;
         Sliceable_Lane_1->OnClicked.AddDynamic(this, &ULevelEditorUI::OnSliceableLane1Clicked);
+        Sliceable_Lane_1->SetVisibility(ESlateVisibility::Collapsed);
     }
 
     if (Sliceable_Lane_2)
     {
         Sliceable_Lane_2->OnClicked.AddDynamic(this, &ULevelEditorUI::OnSliceableLane2Clicked);
+        Sliceable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
     }
+
+    if (Shootable_Lane_1)
+    {
+        Shootable_Lane_1->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (Shootable_Lane_2)
+    {
+        Shootable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (Fat_Lane)
+    {
+        Fat_Lane->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
 
     return true;
 }
@@ -186,6 +221,7 @@ void ULevelEditorUI::OnPlayClicked()
     {
         if (!AudioComponent->IsPlaying())  // Check if it's not already playing
         {
+            CollapseAllButtons();
             AudioComponent->Play(CurrentPlaybackPosition);  // Resume from the current position
             StartTime = GetWorld()->GetTimeSeconds();
             bIsPlaying = true;
@@ -194,7 +230,14 @@ void ULevelEditorUI::OnPlayClicked()
         }
         else
         {
-            UE_LOG(LogTemp, Warning, TEXT("Audio is already playing"));
+            float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
+            CurrentPlaybackPosition += ElapsedTime;  // Store the playback position
+            AudioComponent->Stop();  // Stop the audio
+            bIsPlaying = false;
+
+            ShowButtonsAtPlaybackTime(CurrentPlaybackPosition);
+
+            UE_LOG(LogTemp, Warning, TEXT("Paused sound at position: %f"), CurrentPlaybackPosition);
         }
     }
     else
@@ -226,9 +269,11 @@ void ULevelEditorUI::OnSliderValueChanged(float Value)
         {
             AudioComponent->Play(NewPlaybackPosition);  // Manually setting the new playback time
         }
+        else
+        {
+            ShowButtonsAtPlaybackTime(CurrentPlaybackPosition);
+        }
         StartTime = GetWorld()->GetTimeSeconds();
-
-        UE_LOG(LogTemp, Warning, TEXT("Slider moved to position: %f"), NewPlaybackPosition);
     }
 }
 
@@ -240,6 +285,7 @@ void ULevelEditorUI::OnSliderCaptureBegin()
 void ULevelEditorUI::OnSliderCaptureEnd()
 {
     bIsUserInteractingWithSlider = false;  // User has released the slider
+    UE_LOG(LogTemp, Warning, TEXT("Slider moved to position: %f"), CurrentPlaybackPosition);
 }
 
 float ULevelEditorUI::GetPlaybackTime() const
@@ -482,10 +528,10 @@ void ULevelEditorUI::OnSliceableLane1Clicked()
         float CurrentTime = GetPlaybackTime();
 
         // Update the lane selection data for the first button
-        UpdateLaneSelection(CurrentTime, ELaneSelection::FIRST_LANE);
+        UpdateLaneSelection(CurrentTime, 0b1000);  // 1000 in binary represents the first lane
 
-        // Update the button style based on the lane selection
-        UpdateButtonStyle(Sliceable_Lane_1, LaneSelections[CurrentTime]);
+        // Update the button style based on the updated lane selection
+        UpdateButtonStyle(Sliceable_Lane_1, LaneSelections[CurrentTime], 0b1000);
     }
 }
 
@@ -496,115 +542,87 @@ void ULevelEditorUI::OnSliceableLane2Clicked()
         float CurrentTime = GetPlaybackTime();
 
         // Update the lane selection data for the second button
-        UpdateLaneSelection(CurrentTime, ELaneSelection::SECOND_LANE);
+        UpdateLaneSelection(CurrentTime, 0b0001);  // 0100 in binary represents the second lane
 
-        // Update the button style based on the lane selection
-        UpdateButtonStyle(Sliceable_Lane_2, LaneSelections[CurrentTime]);
+        // Update the button style based on the updated lane selection
+        UpdateButtonStyle(Sliceable_Lane_2, LaneSelections[CurrentTime], 0b0001);
     }
 }
 
-void ULevelEditorUI::UpdateLaneSelection(float CurrentTime, ELaneSelection Selection)
+void ULevelEditorUI::UpdateLaneSelection(float CurrentTime, int Selection)
 {
     if (!LaneSelections.Contains(CurrentTime))
     {
-        // Add a new entry with the specified enum value
+        // Add a new entry with the specified lane value
         LaneSelections.Add(CurrentTime, Selection);
-        UE_LOG(LogTemp, Log, TEXT("Added new lane selection at time %f: %d"), CurrentTime, (uint8)Selection);
+        UE_LOG(LogTemp, Log, TEXT("Added new lane selection at time %f: %d"), CurrentTime, Selection);
     }
     else
     {
-        // Modify the existing value based on the current state and input
-        switch (LaneSelections[CurrentTime])
+        // To turn off only the specified lane if it is on
+        if ((LaneSelections[CurrentTime] & Selection) != 0)
         {
-        case ELaneSelection::FIRST_LANE:
-            switch (Selection)
-            {
-            case ELaneSelection::FIRST_LANE:
-                LaneSelections[CurrentTime] = ELaneSelection::NONE_SELECTED;
-                UE_LOG(LogTemp, Log, TEXT("Changed lane selection at time %f to NONE_SELECTED"), CurrentTime);
-                break;
-            case ELaneSelection::SECOND_LANE:
-                LaneSelections[CurrentTime] = ELaneSelection::BOTH_LANES;
-                UE_LOG(LogTemp, Log, TEXT("Changed lane selection at time %f to BOTH_LANES"), CurrentTime);
-                break;
-            default:
-                break;
-            }
-            break;
-
-        case ELaneSelection::SECOND_LANE:
-            switch (Selection)
-            {
-            case ELaneSelection::FIRST_LANE:
-                LaneSelections[CurrentTime] = ELaneSelection::BOTH_LANES;
-                UE_LOG(LogTemp, Log, TEXT("Changed lane selection at time %f to BOTH_LANES"), CurrentTime);
-                break;
-            case ELaneSelection::SECOND_LANE:
-                LaneSelections[CurrentTime] = ELaneSelection::NONE_SELECTED;
-                UE_LOG(LogTemp, Log, TEXT("Changed lane selection at time %f to NONE_SELECTED"), CurrentTime);
-                break;
-            default:
-                break;
-            }
-            break;
-
-        case ELaneSelection::BOTH_LANES:
-            switch (Selection)
-            {
-            case ELaneSelection::FIRST_LANE:
-                LaneSelections[CurrentTime] = ELaneSelection::SECOND_LANE;
-                UE_LOG(LogTemp, Log, TEXT("Changed lane selection at time %f to SECOND_LANE"), CurrentTime);
-                break;
-            case ELaneSelection::SECOND_LANE:
-                LaneSelections[CurrentTime] = ELaneSelection::FIRST_LANE;
-                UE_LOG(LogTemp, Log, TEXT("Changed lane selection at time %f to FIRST_LANE"), CurrentTime);
-                break;
-            default:
-                break;
-            }
-            break;
-
-        case ELaneSelection::NONE_SELECTED:
-            LaneSelections[CurrentTime] = Selection;
-            UE_LOG(LogTemp, Log, TEXT("Changed lane selection at time %f to %d"), CurrentTime, (uint8)Selection);
-            break;
-
-        default:
-            break;
+            // Use AND with NOT to turn off the specified lane
+            LaneSelections[CurrentTime] &= ~Selection;
+            UE_LOG(LogTemp, Log, TEXT("Turned off lane selection at time %f: %d"), CurrentTime, LaneSelections[CurrentTime]);
+        }
+        else
+        {
+            // Otherwise, turn it on
+            LaneSelections[CurrentTime] |= Selection;
+            UE_LOG(LogTemp, Log, TEXT("Turned on lane selection at time %f: %d"), CurrentTime, LaneSelections[CurrentTime]);
         }
     }
 }
 
-void ULevelEditorUI::UpdateButtonStyle(UButton* Button, ELaneSelection Selection)
+void ULevelEditorUI::UpdateButtonStyle(UButton* Button, int LaneState, int Selection)
 {
-    if (Selection == ELaneSelection::NONE_SELECTED)
+    if ((LaneState & Selection) != 0)  // Check if the specific lane is selected
     {
-        // Set the button's normal style back to black border with max margins
-        FButtonStyle ButtonStyle = Button->WidgetStyle;
-
-        // Create a black border with max margins
-        FSlateBrush BorderBrush;
-        BorderBrush.TintColor = FSlateColor(FLinearColor::Black);
-        BorderBrush.Margin = FMargin(1.0f);  // Max margins
-
-        // Set the button border to the style
-        ButtonStyle.Normal = BorderBrush;
-
-        // Apply the old style to the button
-        Button->SetStyle(ButtonStyle);
+        Button->SetStyle(SelectedButtonStyle);
     }
     else
     {
-        // Set the button's normal style to green with low opacity
-        FButtonStyle ButtonStyle = Button->WidgetStyle;
-
-        // Create a green color with low opacity
-        FSlateColor ButtonColor(FLinearColor(0.0f, 1.0f, 0.0f, 0.3f));  // Green with 0.3 opacity
-
-        // Set the button style color
-        ButtonStyle.Normal.TintColor = ButtonColor;
-
-        // Apply the new style to the button
-        Button->SetStyle(ButtonStyle);
+        // Set the button back to the normal style with a black border
+        Button->SetStyle(NormalButtonStyle);
     }
+}
+
+
+void ULevelEditorUI::ShowButtonsAtPlaybackTime(float CurrentTime)
+{
+    if (LaneSelections.Contains(CurrentTime))
+    {
+        (LaneSelections[CurrentTime] & 0b1000) != 0 ?
+            Sliceable_Lane_1->SetStyle(SelectedButtonStyle) :
+            Sliceable_Lane_1->SetStyle(NormalButtonStyle);
+
+        (LaneSelections[CurrentTime] & 0b0001) != 0 ?
+            Sliceable_Lane_2->SetStyle(SelectedButtonStyle) :
+            Sliceable_Lane_2->SetStyle(NormalButtonStyle);
+    }
+    else
+    {
+        Sliceable_Lane_1->SetStyle(NormalButtonStyle);
+        Sliceable_Lane_2->SetStyle(NormalButtonStyle);
+    }
+    ShowAllButtons();
+}
+
+void ULevelEditorUI::ShowAllButtons()
+{
+    Sliceable_Lane_1->SetVisibility(ESlateVisibility::Visible);
+    Sliceable_Lane_2->SetVisibility(ESlateVisibility::Visible);
+    /*Shootable_Lane_1->SetVisibility(ESlateVisibility::Visible);
+    Shootable_Lane_2->SetVisibility(ESlateVisibility::Visible);
+    Fat_Lane->SetVisibility(ESlateVisibility::Visible);*/
+}
+
+void ULevelEditorUI::CollapseAllButtons()
+{
+    Sliceable_Lane_1->SetVisibility(ESlateVisibility::Collapsed);
+    Sliceable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
+    /*Shootable_Lane_1->SetVisibility(ESlateVisibility::Collapsed);
+    Shootable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
+    Fat_Lane->SetVisibility(ESlateVisibility::Collapsed);*/
 }

@@ -14,14 +14,14 @@
 
 
 // Enum for lane selections
-UENUM(BlueprintType)
+/*UENUM(BlueprintType)
 enum class ELaneSelection : uint8{
     NONE_SELECTED  UMETA(DisplayName = "No Selecetd Lanes"),
     FIRST_LANE    UMETA(DisplayName = "First Lane"),
     SECOND_LANE   UMETA(DisplayName = "Second Lane"),
     BOTH_LANES    UMETA(DisplayName = "Both Lanes")
     // Add more configurations as needed
-};
+};*/
 
 UCLASS()
 class COOKINGCHORDS_API ULevelEditorUI : public UUserWidget
@@ -68,7 +68,22 @@ protected:
     UPROPERTY(meta = (BindWidget))
     UButton* Sliceable_Lane_2;
 
-    TMap<float, ELaneSelection> LaneSelections;
+    UPROPERTY(meta = (BindWidget))
+    UButton* Shootable_Lane_1;
+
+    UPROPERTY(meta = (BindWidget))
+    UButton* Shootable_Lane_2;
+
+    UPROPERTY(meta = (BindWidget))
+    UButton* Fat_Lane;
+
+    UPROPERTY()
+    FButtonStyle NormalButtonStyle;
+
+    UPROPERTY()
+    FButtonStyle SelectedButtonStyle;
+
+    TMap<float, int> LaneSelections;
 
     UFUNCTION()
     void OnSliderCaptureBegin();
@@ -128,7 +143,13 @@ protected:
 
     void GenerateWaveformFromPCMData(int16* PCMData, int32 NumSamples, float DurationSeconds);
 
-    void UpdateLaneSelection(float CurrentTime, ELaneSelection Selection);
+    void UpdateLaneSelection(float CurrentTime, int Selection);
 
-    void UpdateButtonStyle(UButton* Button, ELaneSelection Selection);
+    void UpdateButtonStyle(UButton* Button, int LaneState, int Selection);
+
+    void ShowButtonsAtPlaybackTime(float CurrentTime);
+
+    void CollapseAllButtons();
+
+    void ShowAllButtons();
 };
