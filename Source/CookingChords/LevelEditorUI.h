@@ -13,15 +13,17 @@
 #include "LevelEditorUI.generated.h"
 
 
-// Enum for lane selections
-/*UENUM(BlueprintType)
-enum class ELaneSelection : uint8{
-    NONE_SELECTED  UMETA(DisplayName = "No Selecetd Lanes"),
-    FIRST_LANE    UMETA(DisplayName = "First Lane"),
-    SECOND_LANE   UMETA(DisplayName = "Second Lane"),
-    BOTH_LANES    UMETA(DisplayName = "Both Lanes")
-    // Add more configurations as needed
-};*/
+USTRUCT(BlueprintType)
+struct FReadyLevel
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    TArray<float> Keys;
+
+    UPROPERTY()
+    TArray<float> Values;
+};
 
 UCLASS()
 class COOKINGCHORDS_API ULevelEditorUI : public UUserWidget
@@ -40,13 +42,22 @@ public:
 
     bool bIsUserInteractingWithSlider = false;
 
+    UFUNCTION()
+    bool GetTestPressed();
+
+    UFUNCTION()
+    void SetTestPressed(bool x);
+
 
 protected:
     UPROPERTY(meta = (BindWidget))
     UButton* PlayButton;
 
     UPROPERTY(meta = (BindWidget))
-    UButton* PauseButton;
+    UButton* SaveButton;
+
+    UPROPERTY(meta = (BindWidget))
+    UButton* TestButton;
 
     UPROPERTY(meta = (BindWidget))
     UButton* UploadSongButton;
@@ -85,6 +96,9 @@ protected:
 
     TMap<float, int> LaneSelections;
 
+    UPROPERTY()
+    bool TestPressed;
+
     UFUNCTION()
     void OnSliderCaptureBegin();
 
@@ -116,7 +130,10 @@ protected:
 
     // Function to handle pausing sound
     UFUNCTION()
-    void OnPauseClicked();
+    void OnSaveClicked();
+
+    UFUNCTION()
+    void OnTestClicked();
 
     // Function to handle uploading sound
     UFUNCTION()
@@ -152,4 +169,8 @@ protected:
     void CollapseAllButtons();
 
     void ShowAllButtons();
+
+    UPROPERTY()
+    FReadyLevel ReadyLevel;
+
 };

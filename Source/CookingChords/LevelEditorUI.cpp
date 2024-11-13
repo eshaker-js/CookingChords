@@ -17,14 +17,17 @@ bool ULevelEditorUI::Initialize()
 {
     Super::Initialize();
 
+    TestPressed = false;
     UpdateLoadingUI(false);
     // Bind UI buttons
     if (PlayButton)
         PlayButton->OnClicked.AddDynamic(this, &ULevelEditorUI::OnPlayClicked);
-    if (PauseButton)
-        PauseButton->OnClicked.AddDynamic(this, &ULevelEditorUI::OnPauseClicked);
+    if (SaveButton)
+        SaveButton->OnClicked.AddDynamic(this, &ULevelEditorUI::OnSaveClicked);
     if (UploadSongButton)
         UploadSongButton->OnClicked.AddDynamic(this, &ULevelEditorUI::OnUploadSongClicked);
+    if (TestButton)
+        TestButton->OnClicked.AddDynamic(this, &ULevelEditorUI::OnTestClicked);
 
     if (SongProgressSlider)
     {
@@ -246,17 +249,72 @@ void ULevelEditorUI::OnPlayClicked()
     }
 }
 
-void ULevelEditorUI::OnPauseClicked()
+void ULevelEditorUI::OnSaveClicked()
 {
-    if (bIsPlaying && AudioComponent)
-    {
-        float ElapsedTime = GetWorld()->GetTimeSeconds() - StartTime;
-        CurrentPlaybackPosition += ElapsedTime;  // Store the playback position
-        AudioComponent->Stop();  // Stop the audio
-        bIsPlaying = false;
+    // Iterate over the LaneSelections map and copy the keys and values into a matrix with 2 rows
+    TArray<TArray<float>> Matrix;
+    Matrix.SetNum(2); // Create a matrix with 2 rows
 
-        UE_LOG(LogTemp, Warning, TEXT("Paused sound at position: %f"), CurrentPlaybackPosition);
+    for (const auto& Entry : LaneSelections)
+    {
+        Matrix[0].Add(Entry.Key);  // First row for keys
+        Matrix[1].Add(Entry.Value);        // Second row for values
     }
+
+    // Sort the matrix based on the keys (first row)
+    TArray<int32> Indices;
+    Indices.SetNum(Matrix[0].Num());
+    for (int32 i = 0; i < Indices.Num(); ++i)
+    {
+        Indices[i] = i;
+    }
+
+    Indices.Sort([&Matrix](int32 A, int32 B) {
+        return Matrix[0][A] < Matrix[0][B];
+        });
+
+    ReadyLevel.Keys.Empty();
+    ReadyLevel.Values.Empty();
+    for (int32 i = 0; i < Indices.Num(); ++i)
+    {
+        ReadyLevel.Keys.Add(Matrix[0][Indices[i]]);
+        ReadyLevel.Values.Add(Matrix[1][Indices[i]]);
+    }
+
+    // JSON serialization and saving logic commented out
+/*
+// Convert the sorted matrix to a JSON string
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+    Writer->WriteObjectStart();
+    Writer->WriteArrayStart("Keys");
+    for (float Key : SortedMatrix[0])
+    {
+        Writer->WriteValue(Key);
+    }
+    Writer->WriteArrayEnd();
+
+    Writer->WriteArrayStart("Values");
+    for (float Value : SortedMatrix[1])
+    {
+        Writer->WriteValue(Value);
+    }
+    Writer->WriteArrayEnd();
+    Writer->WriteObjectEnd();
+    Writer->Close();
+
+    FString SavePath = FPaths::ProjectContentDir() + TEXT("SavedLevels/LevelData.json");
+    FFileHelper::SaveStringToFile(OutputString, *SavePath);
+
+    UE_LOG(LogTemp, Log, TEXT("Level data saved to %s"), *SavePath);
+*/
+
+    return;
+}
+
+void ULevelEditorUI::OnTestClicked()
+{
+    TestPressed = true;
+    return;
 }
 
 void ULevelEditorUI::OnSliderValueChanged(float Value)
@@ -625,4 +683,14 @@ void ULevelEditorUI::CollapseAllButtons()
     /*Shootable_Lane_1->SetVisibility(ESlateVisibility::Collapsed);
     Shootable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
     Fat_Lane->SetVisibility(ESlateVisibility::Collapsed);*/
+}
+
+bool ULevelEditorUI::GetTestPressed()
+{
+    return this->TestPressed;
+}
+
+void ULevelEditorUI::SetTestPressed(bool x)
+{
+    this->TestPressed = x;
 }

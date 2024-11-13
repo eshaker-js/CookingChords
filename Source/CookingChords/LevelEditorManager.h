@@ -24,6 +24,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     TSubclassOf<ULevelEditorUI> LevelEditorUIClass;
+    
+    UPROPERTY()
+    ULevelEditorUI* LevelEditorUIPointer;
 
     // Called every frame
     virtual void Tick(float DeltaTime) override;
@@ -34,6 +37,12 @@ private:
 
     // Function to disable VR (if necessary)
     void DisableVR();
+
+    bool TestRunning;
+
+    void StartTestSequence();
+
+    void EnableVR();
 };
 
 

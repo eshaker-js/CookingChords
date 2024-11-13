@@ -17,6 +17,8 @@ void ALevelEditorManager::BeginPlay()
 {
     Super::BeginPlay();
 
+    TestRunning = false;
+
     UWorld* World = this->GetWorld();  // Use `this->GetWorld()` for clarity
     if (!World)
     {
@@ -70,6 +72,7 @@ void ALevelEditorManager::BeginPlay()
             FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
             FVector2D CenteredPosition = ViewportSize / 2.0f;
             //AudioUI->SetPositionInViewport(CenteredPosition, true);
+            LevelEditorUIPointer = AudioUI;
 
         }
     }
@@ -80,6 +83,11 @@ void ALevelEditorManager::BeginPlay()
 void ALevelEditorManager::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+    
+    if (LevelEditorUIPointer->GetTestPressed() && !TestRunning)
+    {
+        StartTestSequence();
+    }
 }
 
 void ALevelEditorManager::PlacePlayerAtStart()
@@ -137,3 +145,41 @@ void ALevelEditorManager::DisableVR()
 }
 
 
+void ALevelEditorManager::StartTestSequence()
+{
+    // Enable VR
+    EnableVR();
+
+    // Define test location and rotation directly
+    FVector TestLocation(0.0, 914.249391, 83.633862); 
+    FRotator TestRotation(0.0f, -90.0f, 0.0f);
+
+    // Set player location and rotation for the test sequence
+    if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+    {
+        if (APawn* PlayerPawn = PlayerController->GetPawn())
+        {
+            PlayerPawn->SetActorLocation(TestLocation);
+            PlayerPawn->SetActorRotation(TestRotation);
+            UE_LOG(LogTemp, Log, TEXT("Player positioned at test location and rotation"));
+        }
+    }
+
+    // Start the song or any other test sequence action
+    //StartSong();
+}
+
+
+void ALevelEditorManager::EnableVR()
+{
+    if (GEngine && GEngine->XRSystem.IsValid())
+    {
+        // Enable VR rendering (turn on stereo view)
+        APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+        if (PlayerController)
+        {
+            // This console command enables the stereo VR mode
+            PlayerController->ConsoleCommand("vr.bEnableStereo 1");
+        }
+    }
+}
