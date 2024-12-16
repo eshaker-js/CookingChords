@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "LevelEditorUI.h"
+#include "SliceableObject.h"
 #include "LevelEditorManager.generated.h"
 
 UCLASS()
@@ -21,6 +22,17 @@ protected:
     virtual void BeginPlay() override;
 
 public:
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
+    TSubclassOf<ASliceableObject> SliceableObjectClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knives")
+    TSubclassOf<AActor> LeftKnifeClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knives")
+    TSubclassOf<AActor> RightKnifeClass;
+
+
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     TSubclassOf<ULevelEditorUI> LevelEditorUIClass;
@@ -43,6 +55,18 @@ private:
     void StartTestSequence();
 
     void EnableVR();
+
+    void SpawnObjectsAtTimeStamp(float Time);
+
+    float StartTime;
+    float CurrentPlaybackPosition;
+
+    int level_object_index;
+
+    void SpawnObjectInLane(FVector LaneLocation);
+    bool bAudioHasStarted;
+
+    void EquipKnivesToPlayer(APawn* Player);
 };
 
 

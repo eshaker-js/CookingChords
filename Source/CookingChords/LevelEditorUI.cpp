@@ -251,6 +251,7 @@ void ULevelEditorUI::OnPlayClicked()
 
 void ULevelEditorUI::OnSaveClicked()
 {
+    UpdateLoadingUI(true);
     // Iterate over the LaneSelections map and copy the keys and values into a matrix with 2 rows
     TArray<TArray<float>> Matrix;
     Matrix.SetNum(2); // Create a matrix with 2 rows
@@ -280,7 +281,7 @@ void ULevelEditorUI::OnSaveClicked()
         ReadyLevel.Keys.Add(Matrix[0][Indices[i]]);
         ReadyLevel.Values.Add(Matrix[1][Indices[i]]);
     }
-
+    UpdateLoadingUI(false);
     // JSON serialization and saving logic commented out
 /*
 // Convert the sorted matrix to a JSON string
@@ -314,6 +315,8 @@ void ULevelEditorUI::OnSaveClicked()
 void ULevelEditorUI::OnTestClicked()
 {
     TestPressed = true;
+    CurrentPlaybackPosition = 0.0f;
+    bIsPlaying = false;
     return;
 }
 
@@ -693,4 +696,9 @@ bool ULevelEditorUI::GetTestPressed()
 void ULevelEditorUI::SetTestPressed(bool x)
 {
     this->TestPressed = x;
+}
+
+UAudioComponent* ULevelEditorUI::GetAudioComponent()
+{
+    return this->AudioComponent;
 }

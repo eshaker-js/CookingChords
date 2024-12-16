@@ -22,7 +22,7 @@ struct FReadyLevel
     TArray<float> Keys;
 
     UPROPERTY()
-    TArray<float> Values;
+    TArray<int> Values;
 };
 
 UCLASS()
@@ -47,6 +47,12 @@ public:
 
     UFUNCTION()
     void SetTestPressed(bool x);
+
+
+    UPROPERTY()
+    FReadyLevel ReadyLevel;
+
+    UAudioComponent* GetAudioComponent();
 
 
 protected:
@@ -170,7 +176,5 @@ protected:
 
     void ShowAllButtons();
 
-    UPROPERTY()
-    FReadyLevel ReadyLevel;
 
 };

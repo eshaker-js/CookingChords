@@ -20,9 +20,14 @@ ASliceableObject::ASliceableObject()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	RootComponent = Mesh;
 
-    Mesh->SetSimulatePhysics(false);
-    Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    Mesh->SetSimulatePhysics(true);
 	Mesh->SetEnableGravity(false);
+
+    Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    Mesh->SetCollisionObjectType(ECC_PhysicsBody);               
+    Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);         
+    Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Overlap);
+
 	Mesh->SetGenerateOverlapEvents(true);
 	Mesh->OnComponentBeginOverlap.AddDynamic(this, &ASliceableObject::OnOverlapBegin);
     is_sliced = false;
