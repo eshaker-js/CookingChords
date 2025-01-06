@@ -13,7 +13,7 @@ In all honesty I think half a year was enough time to deliver a better game than
 
 ## Features
 
-- **Game Mechanics:** Players can **Slice** objects (ingredients), **Shoot** condiments on flying slices of bread, **Stab** bigger, more stubborn fruits, in sync with the beat of a song, using VR controllers as virtual knives.
+- **Game Mechanics:** Players can **Slice** ingredients, **Shoot** condiments on flying slices of bread, **Knead** bigger, more stubborn fruits, and **Mix** an incoming bowl in sync with the beat of a song, using VR controllers as virtual knives.
 - **Level Editor:** A fully functional level editor allows players to upload their own music, visualize its waveform (work in progress), and create a working level.
 - **Runtime Audio Import:** Players can upload `.wav` files at runtime, integrating their favorite tracks into the game.
 

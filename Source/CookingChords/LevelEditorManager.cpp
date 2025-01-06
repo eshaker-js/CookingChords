@@ -7,8 +7,9 @@
 #include "Engine/Engine.h"
 #include "SliceableObject.h"
 #include "MotionControllerComponent.h"
-#define FirstLane FVector(-355.0, -1085.750609, 283.633865)
-#define FourthLane FVector(-50.0, -1085.750609, 83.633865)
+#define FlyingLane FVector(-355.0, -1085.750609, 283.633865)
+#define GroundLane FVector(-100.0, -1085.750609, 83.633865)
+#define BigLane FVector(-120.0, -1085.750609, 83.633865)
 
 
 // Sets default values
@@ -212,11 +213,13 @@ void ALevelEditorManager::SpawnObjectsAtTimeStamp(float Time)
         if (Time >= LevelEditorUIPointer->ReadyLevel.Keys[level_object_index])
         {
             if (LevelEditorUIPointer->ReadyLevel.Values[level_object_index] & 0b1000)
-                SpawnObjectInLane(FirstLane, ShootableObjectClass);
+                SpawnObjectInLane(FlyingLane, ShootableObjectClass);
             if (LevelEditorUIPointer->ReadyLevel.Values[level_object_index] & 0b0001)
-                SpawnObjectInLane(FourthLane, SliceableObjectClass);
+                SpawnObjectInLane(GroundLane, SliceableObjectClass);
             if (LevelEditorUIPointer->ReadyLevel.Values[level_object_index] & 0b0100)
-                SpawnObjectInLane(FourthLane, KneadableObjectClass);
+                SpawnObjectInLane(GroundLane, KneadableObjectClass);
+            if (LevelEditorUIPointer->ReadyLevel.Values[level_object_index] & 0b0010)
+                SpawnObjectInLane(BigLane, CircularableObjectClass);
             level_object_index++;
         }
     }

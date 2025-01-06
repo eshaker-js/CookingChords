@@ -8,6 +8,7 @@
 #include "SliceableObject.h"
 #include "ShootableObject.h"
 #include "KneadableObject.h"
+#include "CircularableObject.h"
 #include "LevelEditorManager.generated.h"
 
 UCLASS()
@@ -33,6 +34,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
     TSubclassOf<AKneadableObject> KneadableObjectClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
+    TSubclassOf<ACircularableObject> CircularableObjectClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     TSubclassOf<ULevelEditorUI> LevelEditorUIClass;

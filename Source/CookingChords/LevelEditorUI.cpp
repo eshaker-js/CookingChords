@@ -73,6 +73,7 @@ bool ULevelEditorUI::Initialize()
 
     if (Shootable_Lane_2)
     {
+        Shootable_Lane_2->OnClicked.AddDynamic(this, &ULevelEditorUI::OnCircularableLaneClicked);
         Shootable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
     }
 
@@ -625,6 +626,20 @@ void ULevelEditorUI::OnKneadableLaneClicked()
     }
 }
 
+void ULevelEditorUI::OnCircularableLaneClicked()
+{
+    if (!bIsPlaying)
+    {
+        float CurrentTime = GetPlaybackTime();
+
+        // Update the lane selection data for the second button
+        UpdateLaneSelection(CurrentTime, 0b0010);  // 0100 in binary represents the second lane
+
+        // Update the button style based on the updated lane selection
+        UpdateButtonStyle(Shootable_Lane_2, LaneSelections[CurrentTime], 0b0010);
+    }
+}
+
 void ULevelEditorUI::UpdateLaneSelection(float CurrentTime, int Selection)
 {
     if (!LaneSelections.Contains(CurrentTime))
@@ -680,12 +695,17 @@ void ULevelEditorUI::ShowButtonsAtPlaybackTime(float CurrentTime)
         (LaneSelections[CurrentTime] & 0b0100) != 0 ?
             Shootable_Lane_1->SetStyle(SelectedButtonStyle) :
             Shootable_Lane_1->SetStyle(NormalButtonStyle);
+
+        (LaneSelections[CurrentTime] & 0b0010) != 0 ?
+            Shootable_Lane_2->SetStyle(SelectedButtonStyle) :
+            Shootable_Lane_2->SetStyle(NormalButtonStyle);
     }
     else
     {
         Sliceable_Lane_1->SetStyle(NormalButtonStyle);
         Sliceable_Lane_2->SetStyle(NormalButtonStyle);
         Shootable_Lane_1->SetStyle(NormalButtonStyle);
+        Shootable_Lane_2->SetStyle(NormalButtonStyle);
     }
     ShowAllButtons();
 }
@@ -695,8 +715,8 @@ void ULevelEditorUI::ShowAllButtons()
     Sliceable_Lane_1->SetVisibility(ESlateVisibility::Visible);
     Sliceable_Lane_2->SetVisibility(ESlateVisibility::Visible);
     Shootable_Lane_1->SetVisibility(ESlateVisibility::Visible);
-    /*Shootable_Lane_2->SetVisibility(ESlateVisibility::Visible);
-    Fat_Lane->SetVisibility(ESlateVisibility::Visible);*/
+    Shootable_Lane_2->SetVisibility(ESlateVisibility::Visible);
+    /*Fat_Lane->SetVisibility(ESlateVisibility::Visible); */
 }
 
 void ULevelEditorUI::CollapseAllButtons()
@@ -704,8 +724,8 @@ void ULevelEditorUI::CollapseAllButtons()
     Sliceable_Lane_1->SetVisibility(ESlateVisibility::Collapsed);
     Sliceable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
     Shootable_Lane_1->SetVisibility(ESlateVisibility::Collapsed);
-    /*Shootable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
-    Fat_Lane->SetVisibility(ESlateVisibility::Collapsed);*/
+    Shootable_Lane_2->SetVisibility(ESlateVisibility::Collapsed);
+    /*Fat_Lane->SetVisibility(ESlateVisibility::Collapsed);*/
 }
 
 bool ULevelEditorUI::GetTestPressed()

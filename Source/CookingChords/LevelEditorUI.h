@@ -154,6 +154,9 @@ protected:
     UFUNCTION()
     void OnKneadableLaneClicked();
 
+    UFUNCTION()
+    void OnCircularableLaneClicked();
+
     // Function to handle slider change
     UFUNCTION()
     void OnSliderValueChanged(float Value);
