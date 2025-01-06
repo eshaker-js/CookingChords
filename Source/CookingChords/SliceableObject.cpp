@@ -20,9 +20,14 @@ ASliceableObject::ASliceableObject()
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	RootComponent = Mesh;
 
-    Mesh->SetSimulatePhysics(false);
-    Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    Mesh->SetSimulatePhysics(true);
 	Mesh->SetEnableGravity(false);
+
+    Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    /*Mesh->SetCollisionObjectType(ECC_PhysicsBody);
+    Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);         
+    Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Overlap);*/
+
 	Mesh->SetGenerateOverlapEvents(true);
 	Mesh->OnComponentBeginOverlap.AddDynamic(this, &ASliceableObject::OnOverlapBegin);
     is_sliced = false;
@@ -54,53 +59,69 @@ void ASliceableObject::OnOverlapBegin(UPrimitiveComponent * HitComp, AActor * Ot
 
 void ASliceableObject::SliceObject()
 {
-    // Store necessary information before destroying the original actor
-    FVector SpawnLocation = GetActorLocation();
-    FRotator SpawnRotation = GetActorRotation();
-    UStaticMesh* OriginalMesh = Mesh->GetStaticMesh();
-
-    is_sliced = true;
-
-    OnSliced();
-    // Destroy the original object before proceeding
-    Destroy();
-
-    UE_LOG(LogSliceableObject, Warning, TEXT("Slicing object"));
-
-    // Offset for the spawn locations of the two halves
-    FVector Offset = FVector(10.0f, 0.0f, 0.0f);  // Adjust the offset as needed
-
-    // Spawn the first half slightly to the right
-    FVector FirstHalfLocation = SpawnLocation + Offset;
-    AStaticMeshActor* FirstHalf = GetWorld()->SpawnActor<AStaticMeshActor>(FirstHalfLocation, SpawnRotation);
-    if (FirstHalf && FirstHalf->GetStaticMeshComponent())
+    if (is_sliced == false)
     {
-        FirstHalf->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
-        FirstHalf->GetStaticMeshComponent()->SetStaticMesh(OriginalMesh);  
-        FirstHalf->GetStaticMeshComponent()->SetSimulatePhysics(true);
-        FirstHalf->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+        // Store necessary information before destroying the original actor
+        FVector SpawnLocation = GetActorLocation();
+        FRotator SpawnRotation = GetActorRotation();
+        UStaticMesh* OriginalMesh = Mesh->GetStaticMesh();
+        UMaterialInterface* OriginalMaterial = Mesh->GetMaterial(0);
+
+        if (!OriginalMaterial)
+        {
+            UE_LOG(LogTemp, Error, TEXT("OriginalMaterial is null!"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Log, TEXT("OriginalMaterial successfully retrieved: %s"), *OriginalMaterial->GetName());
+        }
+
+
+        UE_LOG(LogSliceableObject, Warning, TEXT("Slicing object"));
+
+        // Offset for the spawn locations of the two halves
+        FVector Offset = FVector(10.0f, 0.0f, 0.0f);  // Adjust the offset as needed
+
+
+        FVector SecondHalfLocation = SpawnLocation - Offset;
+        AStaticMeshActor* SecondHalf = GetWorld()->SpawnActor<AStaticMeshActor>(SecondHalfLocation, SpawnRotation);
+        if (SecondHalf && SecondHalf->GetStaticMeshComponent())
+        {
+            SecondHalf->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
+            SecondHalf->GetStaticMeshComponent()->SetStaticMesh(OriginalMesh);
+            SecondHalf->GetStaticMeshComponent()->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+            SecondHalf->GetStaticMeshComponent()->SetSimulatePhysics(true);
+            SecondHalf->GetStaticMeshComponent()->SetMaterial(0, OriginalMaterial);
+            SecondHalf->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+            FVector SecondHalfDirection = FVector::UpVector + FVector::LeftVector;
+            SecondHalf->GetStaticMeshComponent()->AddImpulse(SecondHalfDirection * 500.0f);
+        }
+
+        // Spawn the first half slightly to the right
+        FVector FirstHalfLocation = SpawnLocation + Offset;
         FVector FirstHalfDirection = FVector::UpVector + FVector::RightVector;
-        FirstHalf->GetStaticMeshComponent()->AddImpulse(FirstHalfDirection * 500.0f);
-    }
 
-    // Spawn the second half slightly to the left
-    FVector SecondHalfLocation = SpawnLocation - Offset;
-    AStaticMeshActor* SecondHalf = GetWorld()->SpawnActor<AStaticMeshActor>(SecondHalfLocation, SpawnRotation);
-    if (SecondHalf && SecondHalf->GetStaticMeshComponent())
-    {
-        SecondHalf->GetStaticMeshComponent()->SetMobility(EComponentMobility::Movable);
-        SecondHalf->GetStaticMeshComponent()->SetStaticMesh(OriginalMesh);  
-        SecondHalf->GetStaticMeshComponent()->SetSimulatePhysics(true);
-        SecondHalf->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-        FVector SecondHalfDirection = FVector::UpVector + FVector::LeftVector;
-        SecondHalf->GetStaticMeshComponent()->AddImpulse(SecondHalfDirection * 500.0f);
+
+        Mesh->SetWorldLocation(FirstHalfLocation);
+        Mesh->SetMobility(EComponentMobility::Movable);
+        Mesh->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+        Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+        Mesh->SetCollisionProfileName(TEXT("BlockAll"));
+        Mesh->SetSimulatePhysics(true);
+        Mesh->SetEnableGravity(true);
+        Mesh->AddImpulse(FirstHalfDirection * 500.0f);
+
+
+        OnSliced();
+
+        FTimerHandle timer1;
+        GetWorld()->GetTimerManager().SetTimer(timer1, [this, SecondHalf]() {
+            if (this) this->Destroy();
+            if (SecondHalf) SecondHalf->Destroy();
+            }, 1.0f, false);
+        is_sliced = true;
     }
-    FTimerHandle timer1;
-    GetWorld()->GetTimerManager().SetTimer(timer1, [FirstHalf, SecondHalf]() {
-        if (FirstHalf) FirstHalf->Destroy();
-        if (SecondHalf) SecondHalf->Destroy();
-        }, 1.0f, false);
-    
 }
 
 
@@ -115,7 +136,5 @@ void ASliceableObject::SetIsSliced(bool new_state)
     {
         is_sliced = new_state;
         //UE_LOG(LogTemp, Warning, TEXT("bIsSliced has been updated."));
-
-        // Additional logic can go here if needed, like triggering events
     }
 }
