@@ -24,9 +24,9 @@ ASliceableObject::ASliceableObject()
 	Mesh->SetEnableGravity(false);
 
     Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    Mesh->SetCollisionObjectType(ECC_PhysicsBody);               
+    /*Mesh->SetCollisionObjectType(ECC_PhysicsBody);
     Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);         
-    Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Overlap);
+    Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Overlap);*/
 
 	Mesh->SetGenerateOverlapEvents(true);
 	Mesh->OnComponentBeginOverlap.AddDynamic(this, &ASliceableObject::OnOverlapBegin);
@@ -66,7 +66,16 @@ void ASliceableObject::SliceObject()
         FVector SpawnLocation = GetActorLocation();
         FRotator SpawnRotation = GetActorRotation();
         UStaticMesh* OriginalMesh = Mesh->GetStaticMesh();
+        UMaterialInterface* OriginalMaterial = Mesh->GetMaterial(0);
 
+        if (!OriginalMaterial)
+        {
+            UE_LOG(LogTemp, Error, TEXT("OriginalMaterial is null!"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Log, TEXT("OriginalMaterial successfully retrieved: %s"), *OriginalMaterial->GetName());
+        }
 
 
         UE_LOG(LogSliceableObject, Warning, TEXT("Slicing object"));
@@ -83,6 +92,7 @@ void ASliceableObject::SliceObject()
             SecondHalf->GetStaticMeshComponent()->SetStaticMesh(OriginalMesh);
             SecondHalf->GetStaticMeshComponent()->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
             SecondHalf->GetStaticMeshComponent()->SetSimulatePhysics(true);
+            SecondHalf->GetStaticMeshComponent()->SetMaterial(0, OriginalMaterial);
             SecondHalf->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
             FVector SecondHalfDirection = FVector::UpVector + FVector::LeftVector;
             SecondHalf->GetStaticMeshComponent()->AddImpulse(SecondHalfDirection * 500.0f);
@@ -126,7 +136,5 @@ void ASliceableObject::SetIsSliced(bool new_state)
     {
         is_sliced = new_state;
         //UE_LOG(LogTemp, Warning, TEXT("bIsSliced has been updated."));
-
-        // Additional logic can go here if needed, like triggering events
     }
 }

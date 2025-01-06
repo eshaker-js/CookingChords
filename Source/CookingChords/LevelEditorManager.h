@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "LevelEditorUI.h"
 #include "SliceableObject.h"
+#include "ShootableObject.h"
+#include "KneadableObject.h"
 #include "LevelEditorManager.generated.h"
 
 UCLASS()
@@ -26,19 +28,23 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
     TSubclassOf<ASliceableObject> SliceableObjectClass;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knives")
-    TSubclassOf<AActor> LeftKnifeClass;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
+    TSubclassOf<AShootableObject> ShootableObjectClass;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knives")
-    TSubclassOf<AActor> RightKnifeClass;
-
-
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
+    TSubclassOf<AKneadableObject> KneadableObjectClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     TSubclassOf<ULevelEditorUI> LevelEditorUIClass;
     
     UPROPERTY()
     ULevelEditorUI* LevelEditorUIPointer;
+
+    UFUNCTION(BlueprintCallable, Category = "Test")
+    void SetTestRunning(bool state);
+
+    UFUNCTION(BlueprintCallable, Category = "Test")
+    bool GetTestRunning() const;
 
     // Called every frame
     virtual void Tick(float DeltaTime) override;
@@ -49,6 +55,8 @@ private:
 
     // Function to disable VR (if necessary)
     void DisableVR();
+
+    bool TestStarted;
 
     bool TestRunning;
 
@@ -63,10 +71,9 @@ private:
 
     int level_object_index;
 
-    void SpawnObjectInLane(FVector LaneLocation);
+    void SpawnObjectInLane(FVector LaneLocation, TSubclassOf<AActor> ObjectToSpawnClass);
     bool bAudioHasStarted;
 
-    void EquipKnivesToPlayer(APawn* Player);
 };
 
 

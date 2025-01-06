@@ -7,8 +7,8 @@
 #include "Engine/Engine.h"
 #include "SliceableObject.h"
 #include "MotionControllerComponent.h"
-#define FirstLane FVector(-383.607434, -1085.750609, 83.633865)
-#define FourthLane FVector(383.607377, -1085.750609, 83.633865)
+#define FirstLane FVector(-355.0, -1085.750609, 283.633865)
+#define FourthLane FVector(-50.0, -1085.750609, 83.633865)
 
 
 // Sets default values
@@ -24,6 +24,7 @@ void ALevelEditorManager::BeginPlay()
 
     bAudioHasStarted = false;
     TestRunning = false;
+    TestStarted = false;
     level_object_index = 0;
     UWorld* World = this->GetWorld();  // Use `this->GetWorld()` for clarity
     if (!World)
@@ -100,7 +101,7 @@ void ALevelEditorManager::Tick(float DeltaTime)
             LevelEditorUIPointer->GetAudioComponent()->Play();
         }
     }
-    if (LevelEditorUIPointer->GetTestPressed() && !TestRunning)
+    if (LevelEditorUIPointer->GetTestPressed() && !TestStarted)
     {
         StartTestSequence();
     }
@@ -163,13 +164,13 @@ void ALevelEditorManager::DisableVR()
 
 void ALevelEditorManager::StartTestSequence()
 {
-    TestRunning = true;
+    TestStarted = true;
     // Enable VR
     EnableVR();
 
     // Define test location and rotation directly
     FVector TestLocation(0.0, 914.249391, 83.633862); 
-    FRotator TestRotation(0.0f, -90.0f, 0.0f);
+    FRotator TestRotation(0.0f, -180.0f, 0.0f);
 
     // Set player location and rotation for the test sequence
     if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
@@ -180,12 +181,12 @@ void ALevelEditorManager::StartTestSequence()
             PlayerPawn->SetActorRotation(TestRotation);
             UE_LOG(LogTemp, Log, TEXT("Player positioned at test location and rotation"));
 
-            EquipKnivesToPlayer(PlayerPawn);
+            //EquipKnivesToPlayer(PlayerPawn);
         }
     }
 
     LevelEditorUIPointer->SetVisibility(ESlateVisibility::Collapsed);
-    StartTime = GetWorld()->GetTimeSeconds();
+    //StartTime = GetWorld()->GetTimeSeconds();
     return;
 }
 
@@ -211,20 +212,22 @@ void ALevelEditorManager::SpawnObjectsAtTimeStamp(float Time)
         if (Time >= LevelEditorUIPointer->ReadyLevel.Keys[level_object_index])
         {
             if (LevelEditorUIPointer->ReadyLevel.Values[level_object_index] & 0b1000)
-                SpawnObjectInLane(FirstLane);
+                SpawnObjectInLane(FirstLane, ShootableObjectClass);
             if (LevelEditorUIPointer->ReadyLevel.Values[level_object_index] & 0b0001)
-                SpawnObjectInLane(FourthLane);
+                SpawnObjectInLane(FourthLane, SliceableObjectClass);
+            if (LevelEditorUIPointer->ReadyLevel.Values[level_object_index] & 0b0100)
+                SpawnObjectInLane(FourthLane, KneadableObjectClass);
             level_object_index++;
         }
     }
     return;
 }
 
-void ALevelEditorManager::SpawnObjectInLane(FVector LaneLocation)
+void ALevelEditorManager::SpawnObjectInLane(FVector LaneLocation, TSubclassOf<AActor> ObjectToSpawnClass)
 {
-    if (!SliceableObjectClass)
+    if (!ObjectToSpawnClass)
     {
-        UE_LOG(LogTemp, Error, TEXT("SliceableObjectClass is not set!"));
+        UE_LOG(LogTemp, Error, TEXT("ObjectToSpawnClass is not set!"));
         return;
     }
 
@@ -235,116 +238,59 @@ void ALevelEditorManager::SpawnObjectInLane(FVector LaneLocation)
         return;
     }
 
-    // Spawn the Blueprint-derived class
-    ASliceableObject* SliceableObject = World->SpawnActor<ASliceableObject>(
-        SliceableObjectClass,
+    // Spawn the specified object type
+    AActor* SpawnedObject = World->SpawnActor<AActor>(
+        ObjectToSpawnClass,
         LaneLocation,
         FRotator::ZeroRotator
     );
 
-    if (SliceableObject->Mesh)
+    if (!SpawnedObject)
     {
-        if (!SliceableObject->Mesh->GetStaticMesh())
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn object!"));
+        return;
+    }
+
+    // Check if the spawned object has a StaticMeshComponent
+    UStaticMeshComponent* MeshComponent = SpawnedObject->FindComponentByClass<UStaticMeshComponent>();
+    if (MeshComponent)
+    {
+        if (!MeshComponent->GetStaticMesh())
         {
-            UE_LOG(LogTemp, Error, TEXT("SliceableObject has no StaticMesh assigned!"));
+            UE_LOG(LogTemp, Error, TEXT("Spawned object has no StaticMesh assigned!"));
             return;
         }
 
-        if (SliceableObject->Mesh->IsSimulatingPhysics())
+        // Apply impulse if physics simulation is enabled
+        if (MeshComponent->IsSimulatingPhysics())
         {
             FVector ImpulseDirection = FVector(0.0f, 1.0f, 0.0f);
             float ImpulseStrength = 50000.0f;
-            SliceableObject->Mesh->AddImpulse(ImpulseDirection * ImpulseStrength);
+            MeshComponent->AddImpulse(ImpulseDirection * ImpulseStrength);
         }
         else
         {
-            UE_LOG(LogTemp, Warning, TEXT("SliceableObject's Mesh is not simulating physics."));
+            UE_LOG(LogTemp, Warning, TEXT("Spawned object's Mesh is not simulating physics."));
         }
     }
-
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Spawned object has no StaticMeshComponent."));
+    }
 }
 
 
-void ALevelEditorManager::EquipKnivesToPlayer(APawn* Player)
+
+
+void ALevelEditorManager::SetTestRunning(bool state)
 {
-    if (!Player)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Player is not valid! Cannot equip knives."));
-        return;
-    }
-    UWorld* World = GetWorld();
-    if (!World)
-    {
-        UE_LOG(LogTemp, Error, TEXT("World context is invalid!"));
-        return;
-    }
-
-    // Find the motion controllers
-    UMotionControllerComponent* LeftController = Cast<UMotionControllerComponent>(Player->FindComponentByClass<UMotionControllerComponent>());
-    UMotionControllerComponent* RightController = nullptr;
-    APlayerController* PlayerController = Cast<APlayerController>(Player->GetController());
-    if (!PlayerController)
-    {
-        UE_LOG(LogTemp, Error, TEXT("PlayerController is null! Cannot simulate grab actions."));
-        return;
-    }
-
-    // Attempt to get the second motion controller
-    for (UActorComponent* Component : Player->GetComponents())
-    {
-        UMotionControllerComponent* MC = Cast<UMotionControllerComponent>(Component);
-        if (MC && MC != LeftController)
-        {
-            RightController = MC;
-            break;
-        }
-    }
-
-    if (!LeftController || !RightController)
-    {
-        UE_LOG(LogTemp, Error, TEXT("Failed to find both motion controllers on the player."));
-        return;
-    }
-
-    // Spawn and attach the left-hand knife
-    if (LeftKnifeClass)
-    {
-        AActor* LeftKnife = World->SpawnActor<AActor>(LeftKnifeClass, LeftController->GetComponentLocation(), FRotator::ZeroRotator);
-        if (LeftKnife)
-        {
-            LeftKnife->SetActorScale3D(FVector(0.052155f, 0.052155f, 0.162417f)); //Set correct scale
-
-            FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
-            LeftKnife->AttachToComponent(LeftController, AttachRules);
-            UE_LOG(LogTemp, Log, TEXT("Left-hand knife equipped."));
-            PlayerController->InputKey(FKey("IA_Left_Grab"), EInputEvent::IE_Pressed, 1.0f, false);
-
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to spawn left-hand knife."));
-        }
-    }
-
-    // Spawn and attach the right-hand knife
-    if (RightKnifeClass)
-    {
-        AActor* RightKnife = World->SpawnActor<AActor>(RightKnifeClass, RightController->GetComponentLocation(), FRotator::ZeroRotator);
-        if (RightKnife)
-        {
-            RightKnife->SetActorScale3D(FVector(0.052155f, 0.052155f, 0.162417f));
-
-            FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
-            RightKnife->AttachToComponent(RightController, AttachRules);
-            UE_LOG(LogTemp, Log, TEXT("Right-hand knife equipped."));
-            PlayerController->InputKey(FKey("IA_Right_Grab"), EInputEvent::IE_Pressed, 1.0f, false);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to spawn right-hand knife."));
-        }
-    }
+    if(state == true)
+        StartTime = GetWorld()->GetTimeSeconds();
+    TestRunning = state;
 }
 
-
+bool ALevelEditorManager::GetTestRunning() const
+{
+    return TestRunning;
+}
 
