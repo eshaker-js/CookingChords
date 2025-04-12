@@ -12,6 +12,8 @@ My proudest achievements include improving time management by breaking down big 
 
 While this is still a humble project which could've been better, it marks a major step for me as a developer!
 
+To see my code go to 'Source/CookingChord' and you will find all the header and cpp files there, in addition here is a short video showcasing the gameplay:
+
 ## Project Vision
 
 Although initially I was very excited to work on a game that isn't a VR rhythm game, we were required to stick to this theme, and although I had fun ideas (that I will likely come back to later on, on my own, after my degree), this felt like a game-jam, where we get a theme and we get a time slot to create a game within, mine was half a year, the goal was to make a cooking themed rhythm game, and I had brainstormed a lot of cooking related features, some of which I ended up scrapping, and other's made it to the game.
